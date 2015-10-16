@@ -37,6 +37,11 @@ from models import ConferenceForms
 from models import ConferenceQueryForm
 from models import ConferenceQueryForms
 from models import TeeShirtSize
+from models import Session
+from models import SessionForm
+from models import SessionForms
+from models import Speaker
+from models import SpeakerForm
 
 from utils import getUserId
 
@@ -81,6 +86,20 @@ CONF_POST_REQUEST = endpoints.ResourceContainer(
     websafeConferenceKey=messages.StringField(1),
 )
 
+SESSION_GET_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    websafeConferenceKey=messages.StringField(1),
+)
+
+SESSION_POST_REQUEST = endpoints.ResourceContainer(
+    SessionForm,
+    websafeConferenceKey=messages.StringField(1),
+)
+
+SESSION_BY_TYPE_GET_REQUEST = endpoints.ResourceContainer(
+    typeOfSession=messages.StringField(1),
+    websafeConferenceKey=messages.StringField(2),
+)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -134,12 +153,14 @@ class ConferenceApi(remote.Service):
 
         # convert dates from strings to Date objects; set month based on start_date
         if data['startDate']:
-            data['startDate'] = datetime.strptime(data['startDate'][:10], "%Y-%m-%d").date()
+            data['startDate'] = datetime.strptime(data['startDate'][:10],
+                                                  "%Y-%m-%d").date()
             data['month'] = data['startDate'].month
         else:
             data['month'] = 0
         if data['endDate']:
-            data['endDate'] = datetime.strptime(data['endDate'][:10], "%Y-%m-%d").date()
+            data['endDate'] = datetime.strptime(data['endDate'][:10],
+                                                "%Y-%m-%d").date()
 
         # set seatsAvailable to be same as maxAttendees on creation
         if data["maxAttendees"] > 0:
@@ -155,16 +176,13 @@ class ConferenceApi(remote.Service):
         # create Conference, send email to organizer confirming
         # creation of Conference & return (modified) ConferenceForm
         Conference(**data).put()
-        # TODO 2: add confirmation email sending task to queue
-        # create Conference, send email to organizer confirming
-        # creation of Conference & return (modified) ConferenceForm
-        Conference(**data).put()
-        taskqueue.add(params={'email': user.email(),
-            'conferenceInfo': repr(request)},
+        taskqueue.add(
+            params={'email': user.email(),
+                    'conferenceInfo': repr(request)},
             url='/tasks/send_confirmation_email'
         )
-        return request
 
+        return request
 
     @ndb.transactional()
     def _updateConferenceObject(self, request):
@@ -205,13 +223,39 @@ class ConferenceApi(remote.Service):
         prof = ndb.Key(Profile, user_id).get()
         return self._copyConferenceToForm(conf, getattr(prof, 'displayName'))
 
+    def _createSessionObject(self, request):
+        '''Create a new session object
+
+        Note:
+            Only conference owner can add sessions
+        '''
+        user = endpoints.get_current_user()
+        if not user:
+            raise endpoints.UnauthorizedException('Authorization required')
+        user_id = getUserId(user)
+
+        # get conference using websafe key
+        conf = ndb.Key(urlsafe=request.websafeConferenceKey).get()
+
+        # Raise if conference doesn't exist
+        if not conf:
+            raise endpoints.NotFoundException(
+                'No conference found with key: %s' % request.websafeConferenceKey)
+
+        # check that user is owner
+        if user_id != conf.organizerUserId:
+            raise endpoints.ForbiddenException(
+                'Only the owner can add a session to the conference.')
+
+        # Check request has session required attribute name
+        if not request.name:
+            raise endpoints.BadRequestException("Conference 'name' field required")
 
     @endpoints.method(ConferenceForm, ConferenceForm, path='conference',
             http_method='POST', name='createConference')
     def createConference(self, request):
         """Create new conference."""
         return self._createConferenceObject(request)
-
 
     @endpoints.method(CONF_POST_REQUEST, ConferenceForm,
             path='conference/{websafeConferenceKey}',
@@ -496,6 +540,37 @@ class ConferenceApi(remote.Service):
         return self._conferenceRegistration(request, reg=False)
 
 
+# - - - Sessions - - - - - - - - - - - - - - - - - - - - - -
+
+    @endpoints.method(SESSION_GET_REQUEST, SessionForms,
+                      path='conference/{websafeConferenceKey}/sessions',
+                      http_method='GET', name='getConferenceSessions')
+    def getConferenceSessions(self, request):
+        '''Return all the sessions of a conference'''
+        pass
+
+    @endpoints.method(SESSION_BY_TYPE_GET_REQUEST, SessionForms,
+                      path='conference/{websafeConferenceKey}/sessions/by_type',
+                      http_method='GET', name='getConferenceSessionsByType')
+    def getConferenceSessionsByType(self, request):
+        '''Get all the sessions of a certain type in a conference'''
+        pass
+
+    @endpoints.method(SpeakerForm, SessionForms,
+                      path='sessions/by_speaker',
+                      http_method='GET', name='getSessionsBySpeaker')
+    def getSessionsBySpeaker(self, request):
+        '''Get all the sessions for a given speaker'''
+        pass
+
+    @endpoints.method(SESSION_POST_REQUEST, SessionForm,
+                      path='conference/{websafeConferenceKey}/sessions',
+                      http_method='POST', name='createSession')
+    def createSession(self, request):
+        """ Creates a new session for a conference."""
+        #return self._createSessionObject(request)
+        pass
+
 # - - - Announcements - - - - - - - - - - - - - - - - - - - -
 
     @staticmethod
@@ -537,6 +612,5 @@ class ConferenceApi(remote.Service):
             announcement = ""
         return StringMessage(data=announcement)
 
-# TODO 1
 
 api = endpoints.api_server([ConferenceApi]) # register API

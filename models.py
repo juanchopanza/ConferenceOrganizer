@@ -50,11 +50,6 @@ class ProfileForm(messages.Message):
     conferenceKeysToAttend = messages.StringField(4, repeated=True)
 
 
-class BooleanMessage(messages.Message):
-    """BooleanMessage-- outbound Boolean value message"""
-    data = messages.BooleanField(1)
-
-
 class Conference(ndb.Model):
     """Conference -- Conference object"""
     name            = ndb.StringProperty(required=True)
@@ -63,7 +58,7 @@ class Conference(ndb.Model):
     topics          = ndb.StringProperty(repeated=True)
     city            = ndb.StringProperty()
     startDate       = ndb.DateProperty()
-    month           = ndb.IntegerProperty() # TODO: do we need for indexing like Java?
+    month           = ndb.IntegerProperty()
     endDate         = ndb.DateProperty()
     maxAttendees    = ndb.IntegerProperty()
     seatsAvailable  = ndb.IntegerProperty()
@@ -83,6 +78,50 @@ class ConferenceForm(messages.Message):
     endDate         = messages.StringField(10) #DateTimeField()
     websafeKey      = messages.StringField(11)
     organizerDisplayName = messages.StringField(12)
+
+
+class Speaker(ndb.Model):
+    """Speaker -- Speaker, associated with any number of sessions"""
+    name = ndb.StringProperty(required=True)
+
+
+class SpeakerForm(messages.Message):
+    """SpeakerForm -- Speaker outbound form message"""
+    name = messages.StringField(1, required=True)
+
+
+class Session(ndb.Model):
+    """Session -- Conference Session"""
+    name = ndb.StringProperty(required=True)
+    highlights = ndb.StringProperty(repeated=True)
+    speakers = ndb.KeyProperty(kind=Speaker, repeated=True)
+    duration = ndb.TimeProperty()
+    typeOfSession = ndb.StringProperty()
+    date = ndb.DateProperty()
+    startTime = ndb.TimeProperty()
+
+
+class SessionForm(messages.Message):
+    """SessionForm -- Conference Session form messages"""
+    name = messages.StringField(1)
+    highlights = messages.StringField(2, repeated=True)
+    speakers = messages.StringField(3, repeated=True)
+    duration = messages.StringField(4)
+    typeOfSession = messages.StringField(5)
+    date = messages.StringField(6)  # DateTimeField()
+    startTime = messages.StringField(7)  # DateTimeFiled()?
+    websafeKey = messages.StringField(9)
+    websafeConfKey = messages.StringField(10)
+
+
+class SessionForms(messages.Message):
+    """SessionForms -- multiple Conference Session outbound form message"""
+    items = messages.MessageField(SessionForm, 1, repeated=True)
+
+
+class BooleanMessage(messages.Message):
+    """BooleanMessage-- outbound Boolean value message"""
+    data = messages.BooleanField(1)
 
 
 class ConferenceForms(messages.Message):
