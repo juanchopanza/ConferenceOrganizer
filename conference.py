@@ -354,6 +354,19 @@ class ConferenceApi(remote.Service):
         # create and return ancestor query for this user
         return Session.query(ancestor=conf.key)
 
+    def _getSessionsBySpeaker(self, request):
+        '''Given a speaker, return all sessions given \
+        by this particular speaker, across all conferences
+        '''
+        if not request.name:
+            raise endpoints.BadRequestException(
+                "Speaker 'name' field required"
+            )
+
+        speaker = Speaker.query(Speaker.name == request.name).get()
+        speaker_key = speaker.key if speaker is not None else None
+        return Session.query(Session.speakers == speaker_key)
+
     #====== End points =========================================================
 
     @endpoints.method(ConferenceForm, ConferenceForm, path='conference',
@@ -671,7 +684,10 @@ class ConferenceApi(remote.Service):
         '''Given a speaker, return all sessions given \
         by this particular speaker, across all conferences
         '''
-        pass
+        sessions = self._getSessionsBySpeaker(request)
+        return SessionForms(
+            items=[self._copySessionToForm(s) for s in sessions]
+        )
 
     @endpoints.method(SESSION_POST_REQUEST, SessionForm,
                       path='conference/{websafeConferenceKey}/sessions',
