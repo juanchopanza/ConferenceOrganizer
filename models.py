@@ -111,7 +111,7 @@ class SessionForm(messages.Message):
     date = messages.StringField(6)  # DateTimeField()
     startTime = messages.StringField(7)  # DateTimeFiled()?
     websafeKey = messages.StringField(9)
-    websafeConfKey = messages.StringField(10)
+    websafeConferenceKey = messages.StringField(10)
 
 
 class SessionForms(messages.Message):
