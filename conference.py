@@ -675,7 +675,13 @@ class ConferenceApi(remote.Service):
                       http_method='GET', name='getConferenceSessionsByType')
     def getConferenceSessionsByType(self, request):
         '''Get all the sessions of a certain type in a conference'''
-        pass
+        # Get all conference sessions filtered by typeOfSession
+        sessions = self._getConferenceSessions(request).filter(
+            Session.typeOfSession == str(request.typeOfSession))
+        return SessionForms(
+            items=[self._copySessionToForm(s) for s in sessions]
+        )
+
 
     @endpoints.method(SpeakerForm, SessionForms,
                       path='sessions/by_speaker',
