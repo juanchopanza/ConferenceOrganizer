@@ -40,6 +40,7 @@ from models import TeeShirtSize
 from models import Session
 from models import SessionForm
 from models import SessionForms
+from models import SessionType
 from models import Speaker
 from models import SpeakerForm
 
@@ -62,7 +63,7 @@ CONFERENCE_DEFAULTS = {
 
 SESSION_DEFAULTS = {
     "duration": "01:00",
-    "typeOfSession": "UNSPECIFIED",
+    "typeOfSession": SessionType("NOT_SPECIFIED"),
     "date": "1970-01-01",
     "startTime": "09:00"
 }
@@ -104,9 +105,10 @@ SESSION_POST_REQUEST = endpoints.ResourceContainer(
 )
 
 SESSION_BY_TYPE_GET_REQUEST = endpoints.ResourceContainer(
-    typeOfSession=messages.StringField(1),
+    typeOfSession=messages.EnumField(SessionType, 1),
     websafeConferenceKey=messages.StringField(2),
 )
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -272,6 +274,10 @@ class ConferenceApi(remote.Service):
                 data[df] = SESSION_DEFAULTS[df]
                 setattr(request, df, SESSION_DEFAULTS[df])
 
+        # convert session type to string
+        if data['typeOfSession']:
+            data['typeOfSession'] = str(data['typeOfSession'])
+
         # convert dates from strings to Date and TimeDuration objects
         if data['date']:
             data['date'] = datetime.strptime(data['date'][:10],
@@ -310,10 +316,12 @@ class ConferenceApi(remote.Service):
         session_form = SessionForm()
         for field in session_form.all_fields():
             if hasattr(session, field.name):
-                if field.name in ('typeOfSession', 'date', 'startTime',
-                                  'duration'):
+                if field.name in ('date', 'startTime', 'duration'):
                     setattr(session_form, field.name,
                             str(getattr(session, field.name)))
+                elif field.name == 'typeOfSession':
+                    setattr(session_form, field.name,
+                            getattr(SessionType, getattr(session, field.name)))
                 elif field.name == 'speakers':
                     setattr(session_form, field.name,
                             [str(s.get().name) for s in session.speakers])
