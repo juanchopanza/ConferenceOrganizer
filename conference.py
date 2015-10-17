@@ -331,6 +331,21 @@ class ConferenceApi(remote.Service):
 
         return session_form
 
+    def _getConferenceSessions(self, request):
+        '''Given a conference, return all its sessions.'''
+
+        # get conference key from websafe key
+        conf = ndb.Key(urlsafe=request.websafeConferenceKey).get()
+
+        # check that conference exists
+        if not conf:
+            raise endpoints.NotFoundException(
+                'No conference found with key: %s'
+                % request.websafeConferenceKey)
+
+        # create and return ancestor query for this user
+        return Session.query(ancestor=conf.key)
+
     #====== End points =========================================================
 
     @endpoints.method(ConferenceForm, ConferenceForm, path='conference',
@@ -628,8 +643,11 @@ class ConferenceApi(remote.Service):
                       path='conference/{websafeConferenceKey}/sessions',
                       http_method='GET', name='getConferenceSessions')
     def getConferenceSessions(self, request):
-        '''Return all the sessions of a conference'''
-        pass
+        '''Given a conference, return all sessions'''
+        sessions = self._getConferenceSessions(request)
+        return SessionForms(
+            items=[self._copySessionToForm(s) for s in sessions]
+        )
 
     @endpoints.method(SESSION_BY_TYPE_GET_REQUEST, SessionForms,
                       path='conference/{websafeConferenceKey}/sessions/by_type',
@@ -642,7 +660,9 @@ class ConferenceApi(remote.Service):
                       path='sessions/by_speaker',
                       http_method='GET', name='getSessionsBySpeaker')
     def getSessionsBySpeaker(self, request):
-        '''Get all the sessions for a given speaker'''
+        '''Given a speaker, return all sessions given \
+        by this particular speaker, across all conferences
+        '''
         pass
 
     @endpoints.method(SESSION_POST_REQUEST, SessionForm,
