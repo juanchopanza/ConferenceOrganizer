@@ -372,25 +372,64 @@ class ConferenceApi(remote.Service):
         speaker_key = speaker.key if speaker is not None else None
         return Session.query(Session.speakers == speaker_key)
 
+    def _addSessionToWishlist(self, request):
+        '''Add a session key to a user's wishlist.
+
+        Returns:
+            BooleanMessage True if session added, False otherwise.
+        '''
+        prof = self._getProfileFromUser()  # get user Profile
+
+        # Check if session with right websafe session key exists
+        # and raise if it doesn't
+        ws_key = request.websafeSessionKey
+        session_key = ndb.Key(urlsafe=ws_key).get()
+        if not session_key:
+            raise endpoints.NotFoundException(
+                'No session found with key: %s' % ws_key)
+
+        # check if session is already on the user wishlist
+        if ws_key in prof.wishListSessionKeys:
+            return BooleanMessage(data=False)
+
+        # add session to profile's withlist
+        prof.wishListSessionKeys.append(ws_key)
+
+        # write modified profile back to the datastore & return
+        prof.put()
+        return BooleanMessage(data=True)
+
+
+    def _getSessionsInWishlist(self, request):
+        '''Get a list of sessions for all sessions in a user's wish-list'''
+
+        prof = self._getProfileFromUser()
+
+        # get sessionsKeysOnWishlist from profile.
+        sessions = [ndb.Key(urlsafe=key) for key in
+                    prof.wishListSessionKeys]
+
+        return ndb.get_multi(sessions)
+
     #====== End points =========================================================
 
     @endpoints.method(ConferenceForm, ConferenceForm, path='conference',
-            http_method='POST', name='createConference')
+                      http_method='POST', name='createConference')
     def createConference(self, request):
         """Create new conference."""
         return self._createConferenceObject(request)
 
     @endpoints.method(CONF_POST_REQUEST, ConferenceForm,
-            path='conference/{websafeConferenceKey}',
-            http_method='PUT', name='updateConference')
+                      path='conference/{websafeConferenceKey}',
+                      http_method='PUT', name='updateConference')
     def updateConference(self, request):
         """Update conference w/provided fields & return w/updated info."""
         return self._updateConferenceObject(request)
 
 
     @endpoints.method(CONF_GET_REQUEST, ConferenceForm,
-            path='conference/{websafeConferenceKey}',
-            http_method='GET', name='getConference')
+                      path='conference/{websafeConferenceKey}',
+                      http_method='GET', name='getConference')
     def getConference(self, request):
         """Return requested conference (by websafeConferenceKey)."""
         # get Conference object from request; bail if not found
@@ -706,22 +745,30 @@ class ConferenceApi(remote.Service):
         """ Creates a new session for a conference."""
         return self._createSessionObject(request)
 
+
     # This modifies an existing resource. Although only a single user can
     # modify, it is marked transactional to avoid the risk of race conditions.
     @endpoints.method(SESSION_WISHLIST_POST_REQUEST, BooleanMessage,
                       path='wishlist',
                       http_method='POST', name='addSessionToWishlist')
-    @ndb.transactional()
+    #@ndb.transactional()
     def addSessionToWishlist(self, request):
-        ''' Add a session to users wish-list. '''
-        pass
+        ''' Add a session to user's wish-list.
+
+        Take no action if session is already on list.
+        '''
+        return self._addSessionToWishlist(request)
+
 
     @endpoints.method(message_types.VoidMessage, SessionForms,
                       path='wishlist',
                       http_method='GET', name='getSessionsInWishlist')
     def getSessionsInWishlist(self, request):
         '''Get list of sessions in user's wish-list'''
-        pass
+        sessions = self._getSessionsInWishlist(request)
+        return SessionForms(
+            items=[self._copySessionToForm(s) for s in sessions]
+        )
 
 # - - - Announcements - - - - - - - - - - - - - - - - - - - -
 
