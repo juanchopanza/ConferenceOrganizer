@@ -1,6 +1,7 @@
 ### Additional queries
 * Add getConferenceSpeakers(webSafeConferenceKey): gets list of speakers for a given conference.
-* Add getConferenceByTopic(topis): gets list of conferences with a certain topic.
+  DONE
+* Add getConferenceByTopic(topic): gets list of conferences with a certain topic.
 
 ### FeaturedSpeaker functionality
 

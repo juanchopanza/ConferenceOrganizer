@@ -92,6 +92,11 @@ class SpeakerForm(messages.Message):
     name = messages.StringField(1, required=True)
 
 
+class SpeakerForms(messages.Message):
+    """SpeakerForms -- multiple Speaker outbound form message"""
+    items = messages.MessageField(SpeakerForm, 1, repeated=True)
+
+
 class Session(ndb.Model):
     """Session -- Conference Session"""
     name = ndb.StringProperty(required=True)

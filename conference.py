@@ -43,6 +43,7 @@ from models import SessionForms
 from models import SessionType
 from models import Speaker
 from models import SpeakerForm
+from models import SpeakerForms
 
 from utils import getUserId
 
@@ -372,6 +373,9 @@ class ConferenceApi(remote.Service):
         speaker_key = speaker.key if speaker is not None else None
         return Session.query(Session.speakers == speaker_key)
 
+    # This modifies an existing resource. Although only a single user can
+    # modify, it is marked transactional to avoid the risk of race conditions.
+    @ndb.transactional()
     def _addSessionToWishlist(self, request):
         '''Add a session key to a user's wishlist.
 
@@ -681,26 +685,37 @@ class ConferenceApi(remote.Service):
             names[profile.key.id()] = profile.displayName
 
         # return set of ConferenceForm objects per Conference
-        return ConferenceForms(items=[self._copyConferenceToForm(conf, names[conf.organizerUserId])\
-         for conf in conferences]
+        return ConferenceForms(
+            items=[self._copyConferenceToForm(conf,
+                                              names[conf.organizerUserId])
+                   for conf in conferences]
         )
 
-
     @endpoints.method(CONF_GET_REQUEST, BooleanMessage,
-            path='conference/{websafeConferenceKey}',
-            http_method='POST', name='registerForConference')
+                      path='conference/{websafeConferenceKey}',
+                      http_method='POST', name='registerForConference')
     def registerForConference(self, request):
         """Register user for selected conference."""
         return self._conferenceRegistration(request)
 
-
     @endpoints.method(CONF_GET_REQUEST, BooleanMessage,
-            path='conference/{websafeConferenceKey}',
-            http_method='DELETE', name='unregisterFromConference')
+                      path='conference/{websafeConferenceKey}',
+                      http_method='DELETE', name='unregisterFromConference')
     def unregisterFromConference(self, request):
         """Unregister user for selected conference."""
         return self._conferenceRegistration(request, reg=False)
 
+    @endpoints.method(SESSION_GET_REQUEST, SpeakerForms,
+                      path='conference/{websafeConferenceKey}/speakers',
+                      http_method='GET', name='getConferenceSpeakers')
+    def getConferenceSpeakers(self, request):
+        '''Given a conference, return all speakers'''
+        sessions = self._getConferenceSessions(request)
+        speakers = [speaker.get() for session in sessions
+                    for speaker in session.speakers]
+        return SpeakerForms(
+            items=[SpeakerForm(name=speaker.name) for speaker in speakers]
+        )
 
 # - - - Sessions - - - - - - - - - - - - - - - - - - - - - -
 
@@ -746,12 +761,9 @@ class ConferenceApi(remote.Service):
         return self._createSessionObject(request)
 
 
-    # This modifies an existing resource. Although only a single user can
-    # modify, it is marked transactional to avoid the risk of race conditions.
     @endpoints.method(SESSION_WISHLIST_POST_REQUEST, BooleanMessage,
                       path='wishlist',
                       http_method='POST', name='addSessionToWishlist')
-    #@ndb.transactional()
     def addSessionToWishlist(self, request):
         ''' Add a session to user's wish-list.
 
