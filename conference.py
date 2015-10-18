@@ -109,6 +109,11 @@ SESSION_BY_TYPE_GET_REQUEST = endpoints.ResourceContainer(
     websafeConferenceKey=messages.StringField(2),
 )
 
+SESSION_WISHLIST_POST_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    websafeSessionKey=messages.StringField(1)
+)
+
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 
@@ -682,7 +687,6 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(s) for s in sessions]
         )
 
-
     @endpoints.method(SpeakerForm, SessionForms,
                       path='sessions/by_speaker',
                       http_method='GET', name='getSessionsBySpeaker')
@@ -701,6 +705,23 @@ class ConferenceApi(remote.Service):
     def createSession(self, request):
         """ Creates a new session for a conference."""
         return self._createSessionObject(request)
+
+    # This modifies an existing resource. Although only a single user can
+    # modify, it is marked transactional to avoid the risk of race conditions.
+    @endpoints.method(SESSION_WISHLIST_POST_REQUEST, BooleanMessage,
+                      path='wishlist',
+                      http_method='POST', name='addSessionToWishlist')
+    @ndb.transactional()
+    def addSessionToWishlist(self, request):
+        ''' Add a session to users wish-list. '''
+        pass
+
+    @endpoints.method(message_types.VoidMessage, SessionForms,
+                      path='wishlist',
+                      http_method='GET', name='getSessionsInWishlist')
+    def getSessionsInWishlist(self, request):
+        '''Get list of sessions in user's wish-list'''
+        pass
 
 # - - - Announcements - - - - - - - - - - - - - - - - - - - -
 
