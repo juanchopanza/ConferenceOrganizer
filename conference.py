@@ -95,6 +95,10 @@ CONF_POST_REQUEST = endpoints.ResourceContainer(
     websafeConferenceKey=messages.StringField(1),
 )
 
+CONF_BY_TOPIC_REQUEST = endpoints.ResourceContainer(
+    topic=messages.StringField(1),
+)
+
 SESSION_GET_REQUEST = endpoints.ResourceContainer(
     message_types.VoidMessage,
     websafeConferenceKey=messages.StringField(1),
@@ -537,6 +541,22 @@ class ConferenceApi(remote.Service):
                 conferences]
         )
 
+    @endpoints.method(CONF_BY_TOPIC_REQUEST, ConferenceForms,
+                      path='conference/by_topic/{topic}',
+                      http_method='GET', name='getConferencesByTopic')
+    def getConferencesByTopic(self, request):
+        """ Returns all conferences with a certain topic."""
+        # check request has  topic field
+        if not request.topic:
+            raise endpoints.BadRequestException("Conference 'topic' field \
+                required")
+        # get all conferences filtered by topic and order them by name
+        confs = Conference.query().filter(
+            Conference.topics.IN([request.topic])).order(Conference.name)
+        # return set of ConferenceForms
+        return ConferenceForms(
+            items=[self._copyConferenceToForm(conf, "") for conf in confs]
+        )
 
 # - - - Profile objects - - - - - - - - - - - - - - - - - - -
 

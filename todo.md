@@ -2,6 +2,7 @@
 * Add getConferenceSpeakers(webSafeConferenceKey): gets list of speakers for a given conference.
   DONE
 * Add getConferenceByTopic(topic): gets list of conferences with a certain topic.
+  DONE
 
 ### FeaturedSpeaker functionality
 
