@@ -32,6 +32,7 @@ the code developed in the [Developing Scalable Apps in Python][7] course.
 #### Models
 
 Conference `Session` type with following attributes:
+
 1. name
 1. highlights
 1. speakers
@@ -41,6 +42,7 @@ Conference `Session` type with following attributes:
 1. startTime
 
 Confernce session `Speaker` with following attributes:
+
 1. name
 
 
