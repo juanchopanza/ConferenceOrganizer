@@ -802,6 +802,32 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(s) for s in sessions]
         )
 
+# - - - Query problem - - - - - - - - - - - - - - - - - - - -
+    @endpoints.method(message_types.VoidMessage, SessionForms,
+                      path='_query_problem', http_method='GET',
+                      name='queryProblem')
+    def queryProblem(self, request):
+        '''Solution to the query problem
+
+        Get sessions that aren't workshops and that start before 7PM.
+
+        Note:
+            Since the latest time and session type are hard-wired, this \
+            isn't a very useful query. In a real-life application we would \
+            consider making this a function of a session type blacklist \
+            and a time parameter.
+        '''
+        latest_time = '7:00 pm'
+        sessions = Session.query().filter(
+            Session.startTime < datetime.strptime(latest_time,
+                                                  '%I:%M %p').time()
+        )
+
+        return SessionForms(
+            items=[self._copySessionToForm(s)
+                   for s in sessions if s.typeOfSession != 'Workshop']
+        )
+
 # - - - Announcements - - - - - - - - - - - - - - - - - - - -
 
     @staticmethod

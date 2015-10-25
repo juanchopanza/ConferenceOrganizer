@@ -43,6 +43,9 @@ Conference `Session` type with following attributes:
 Confernce session `Speaker` with following attributes:
 1. name
 
+
+There are associated `Form` and `Forms` types for `Sesssion` and `Speaker`.
+
 #### API end-points
 
 The following API end-points are provided for creating and querying sessions:
@@ -79,19 +82,31 @@ sessions from. We define two additional end-points to support whsh-lists:
 
 1. The query requires two inequalities: session type *not equal* to workshop and session
 start time *less than* 7PM.
-2. The problem is that the datastore does not support queries with multiple inequalities.
-3. We can combine two separate queries. Alternatively, we can replace the `!=` condition
+2. The problem is that the datastore does not support queries with inequalities on
+more than one property.
+3. We can query on one property, then filter the results in the application code. 
+Alternatively, we can replace the `!=` condition
 for the workshop session type with an `IN` of all session types except for workshop. The
 latter doesn't scale well with number of session types so we opt for the former:
 
 ```python
 
-from datetime import datetime as dt
-q = Session.query()
-q = q.filter(Session.typeOfSession != 'Workshop')
-# assume time is a string given in request object field time
-q = q.filter(Session.startTime < dt.strptime(request.time, '%I:%M %p').time()))
+from datetime import datetime
+latest_time = '7:00 pm' # hard-wired as example. Could be e.g. request.time
+sessions = Session.query().filter(
+    Session.startTime < datetime.strptime(latest_time,
+                                          '%I:%M %p').time()
+)
+
+return SessionForms(
+    items=[self._copySessionToForm(s)
+           for s in sessions if s.typeOfSession != 'Workshop']
+)
 ```
+
+This is implemented in method `conference.queryProblem()`, with API end-point
+`queryProblem`.
+
 
 ### Tasks
 
