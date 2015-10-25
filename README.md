@@ -24,7 +24,50 @@ the code developed in the [Developing Scalable Apps in Python][7] course.
 1. (Optional) Generate your client library(ies) with [the endpoints tool][6].
 1. Deploy your application.
 
+---
+## Additional funcitonality
 
+### Conference Sessions
+
+#### Models
+
+Conference `Session` type with following attributes:
+1. name 
+1. highlights
+1. speakers
+1. duration
+1. typeOfSession
+1. date
+1. startTime
+
+Confernce session `Speaker` with following attributes:
+1. name
+
+#### API end-points
+
+The following API end-points are provided for creating and querying sessions:
+
+* `getConferenceSessions(websafeConferenceKey)`: Given a conference, return all sessions
+* `getConferenceSessionsByType(websafeConferenceKey, typeOfSession)`: Given a conference, return all sessions of a specified type (eg lecture, keynote, workshop)
+* `getSessionsBySpeaker(speaker)`: Given a speaker, return all sessions given by this particular speaker, across all conferences
+* `createSession(SessionForm, websafeConferenceKey)`: open to the organizer of the conference
+
+### User session wish-list
+
+The wish-list allows a user to maintain a list of sessions they are interested in
+attending. Since users may be interested in sessions from conferences they are not
+yet registered for, there is no restriction on the conferences the user can pick
+sessions from. We define two additional end-points to support whsh-lists:
+
+* `addSessionToWishlist(SessionKey)`: adds a session to the user's list of sessions of interest
+* `getSessionsInWishlist()`: obtain all the sessions in a user's wish-list
+
+### Additional Queries
+
+* `getConferenceSpeakers(webSafeConferenceKey)`: gets list of speakers for a given conference.
+* `getConferenceByTopic(topic)`: gets list of conferences with a certain topic.
+
+---
 [1]: https://developers.google.com/appengine
 [2]: http://python.org
 [3]: https://developers.google.com/appengine/docs/python/endpoints/
