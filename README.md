@@ -75,6 +75,8 @@ sessions from. We define two additional end-points to support whsh-lists:
 2. What is the problem for implementing this query?
 3. What ways to solve it did you think of?
 
+#####Answer:
+
 1. The query requires two inequalities: session type *not equal* to workshop and session
 start time *less than* 7PM.
 2. The problem is that the datastore does not support queries with multiple inequalities.
