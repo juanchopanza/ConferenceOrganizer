@@ -82,12 +82,14 @@ start time *less than* 7PM.
 for the workshop session type with an `IN` of all session types except for workshop. The
 latter doesn't scale well with number of session types so we opt for the former:
 
+```python
 
-    # assume time is a string given in request object field time
-    from datetime import datetime as dt
-    q = Session.query()
-    q = q.filter(Session.typeOfSession != 'Workshop')
-    q = q.filter(Session.startTime < dt.strptime(request.time, '%I:%M %p').time()))
+from datetime import datetime as dt
+q = Session.query()
+q = q.filter(Session.typeOfSession != 'Workshop')
+# assume time is a string given in request object field time
+q = q.filter(Session.startTime < dt.strptime(request.time, '%I:%M %p').time()))
+```
 
 ### Tasks
 
