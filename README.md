@@ -1,6 +1,6 @@
-A conference organization web application built on Google App Engine. 
+A conference organization web application built on Google App Engine.
 
-This is Project 4 of Udacity Fullstack Nanodegree, and is an extension of 
+This is Project 4 of Udacity Fullstack Nanodegree, and is an extension of
 the code developed in the [Developing Scalable Apps in Python][7] course.
 
 ## Products
@@ -32,7 +32,7 @@ the code developed in the [Developing Scalable Apps in Python][7] course.
 #### Models
 
 Conference `Session` type with following attributes:
-1. name 
+1. name
 1. highlights
 1. speakers
 1. duration
@@ -62,10 +62,34 @@ sessions from. We define two additional end-points to support whsh-lists:
 * `addSessionToWishlist(SessionKey)`: adds a session to the user's list of sessions of interest
 * `getSessionsInWishlist()`: obtain all the sessions in a user's wish-list
 
-### Additional Queries
+### Indices and Queries
+
+#### Additional Queries
 
 * `getConferenceSpeakers(webSafeConferenceKey)`: gets list of speakers for a given conference.
 * `getConferenceByTopic(topic)`: gets list of conferences with a certain topic.
+
+#### Query related problem
+
+1. How would you handle a query for all non-workshop sessions before 7 pm?
+2. What is the problem for implementing this query?
+3. What ways to solve it did you think of?
+
+1. The query requires two inequalities: session type *not equal* to workshop and session
+start time *less than* 7PM.
+2. The problem is that the datastore does not support queries with multiple inequalities.
+3. We can combine two separate queries. Alternatively, we can replace the `!=` condition
+for the workshop session type with an `IN` of all session types except for workshop. The
+latter doesn't scale well with number of session types so we opt for the former:
+
+
+    # assume time is a string given in request object field time
+    from datetime import datetime as dt
+    q = Session.query()
+    q = q.filter(Session.typeOfSession != 'Workshop')
+    q = q.filter(Session.startTime < dt.strptime(request.time, '%I:%M %p').time()))
+
+### Tasks
 
 ---
 [1]: https://developers.google.com/appengine
