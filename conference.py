@@ -14,6 +14,7 @@ __author__ = 'wesc+api@google.com (Wesley Chun)'
 
 
 from datetime import datetime
+from collections import Counter
 
 import endpoints
 from protorpc import messages
@@ -52,6 +53,7 @@ from settings import WEB_CLIENT_ID
 EMAIL_SCOPE = endpoints.EMAIL_SCOPE
 API_EXPLORER_CLIENT_ID = endpoints.API_EXPLORER_CLIENT_ID
 MEMCACHE_ANNOUNCEMENTS_KEY = "RECENT_ANNOUNCEMENTS"
+MEMCACHE_FEATURED_SPEAKER_KEY = "FEATURED_SPEAKER %s"
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -314,6 +316,10 @@ class ConferenceApi(remote.Service):
         # create Session's key and store in data
         s_key = ndb.Key(Session, s_id, parent=c_key)
         data['key'] = s_key
+
+        # add task to queue to update featured speaker
+        taskqueue.add(params={'conf_key': c_key.urlsafe()},
+                      url='/tasks/featured_speaker')
 
         # creation of Session & return (modified) SessionForm
         Session(**data).put()
@@ -827,6 +833,53 @@ class ConferenceApi(remote.Service):
             items=[self._copySessionToForm(s)
                    for s in sessions if s.typeOfSession != 'Workshop']
         )
+
+# - - - Featured Speaker  - - - - - - - - - - - - - - - - - -
+    @endpoints.method(CONF_GET_REQUEST, StringMessage,
+                      path='conference/featured_speaker',
+                      http_method='GET', name='getFeaturedSpeaker')
+    def getFeaturedSpeaker(self, request):
+        '''Return the featured speaker of this conference from memcache.'''
+        # check if conf exists given websafeConferenceKey
+        websafe_key = request.websafeConferenceKey
+        conf_key = ndb.Key(urlsafe=websafe_key).get()
+        if not conf_key:
+            raise endpoints.NotFoundException(
+                'No conference found with key: %s' % websafe_key)
+
+        memcache_key = MEMCACHE_FEATURED_SPEAKER_KEY % websafe_key
+
+        return StringMessage(data=memcache.get(
+            memcache_key) or "No featured speakers.")
+
+    @staticmethod
+    def _cacheFeaturedSpeaker(websafe_key):
+        '''Update featured speaker for given conference
+
+        The fetured speaker is the speaker in most sessions in a conference.
+
+        Parameters:
+            websafe_key: websafe conference key string
+        '''
+
+        # get count of speaker appearences in conference sessions
+        c_key = ndb.Key(urlsafe=websafe_key)
+        sessions = Session.query(ancestor=c_key)
+        speaker_count = Counter([s_key
+                                 for session in sessions
+                                 for s_key in session.speakers]).most_common()
+
+        # Get key of most frequent speaker
+        featured_speaker = speaker_count[0][0] if speaker_count else None
+
+        # Store featured speaker in memcache
+        memcache_key = MEMCACHE_FEATURED_SPEAKER_KEY % c_key.urlsafe()
+
+        if featured_speaker is not None:
+            msg = 'FEATURED SPEAKER: %s' % featured_speaker.get().name
+            memcache.set(memcache_key, msg)
+        else:
+            memcache.delete(memcache_key)
 
 # - - - Announcements - - - - - - - - - - - - - - - - - - - -
 

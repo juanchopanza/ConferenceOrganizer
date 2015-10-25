@@ -90,7 +90,6 @@ for the workshop session type with an `IN` of all session types except for works
 latter doesn't scale well with number of session types so we opt for the former:
 
 ```python
-
 from datetime import datetime
 latest_time = '7:00 pm' # hard-wired as example. Could be e.g. request.time
 sessions = Session.query().filter(
@@ -109,6 +108,18 @@ This is implemented in method `conference.queryProblem()`, with API end-point
 
 
 ### Tasks
+
+Each time a new session is added to a conference, a "featured speaker" for that
+conference is calculated. A specification of "featued speaker" is not provided, so we
+select the speaker with the highest number of appearances.
+
+The implementation uses a task queue to run a task that stores a featured speaker
+message in memcache, using a per-conference key to allow for each conference to have
+a featured speaker. An API end-point if provided to get the featured speaker message
+for a given conference.
+
+* API endpoint: `getFeaturedSpeaker(webSafeConferenceKey)`.
+* Task URL: `/tasks/featured_speaker`.
 
 ---
 [1]: https://developers.google.com/appengine
