@@ -29,24 +29,33 @@ the code developed in the [Developing Scalable Apps in Python][7] course.
 
 ### Conference Sessions
 
-#### Models
+#### Models and design considerations
 
 Conference `Session` type with following attributes:
 
-1. name
-1. highlights
-1. speakers
-1. duration
-1. typeOfSession
-1. date
-1. startTime
+1. name (string, required)
+1. highlights (repeated string)
+1. speakers (repeated Speaker key)
+1. duration (time property)
+1. typeOfSession (string, restricted to SessionType enumeration in SessionForm) 
+1. date (date property)
+1. startTime (time property)
+
+
+Conference `SessionType` enumeration. This provides a means to limit the types of
+session to a pre-defined set. Note: an obvious improvement would be to allow for this
+set to be defined per-conference by the conference organizer. This could be implemented
+in a future iteration.
 
 Confernce session `Speaker` with following attributes:
 
-1. name
-
+1. name (string, required)
 
 There are associated `Form` and `Forms` types for `Sesssion` and `Speaker`.
+
+A session is bound to a single conference. This is not represented in the model itself,
+but enforced in the `SessionForm`, which requires a web-safe key for a conference.
+
 
 #### API end-points
 
@@ -67,7 +76,17 @@ sessions from. We define two additional end-points to support whsh-lists:
 * `addSessionToWishlist(SessionKey)`: adds a session to the user's list of sessions of interest
 * `getSessionsInWishlist()`: obtain all the sessions in a user's wish-list
 
+#### Design considerations
+
+Each user profile contains a wish-list of sessions. These are implemented as a repeated
+string property in the `Profile` model, set in the `ProfileForm`. A user does not have
+to be registered to a conference in order to add a session to the wish-list. The list
+expresses an interest in, and not a commitment to, attending.
+
+
 ### Indices and Queries
+
+Indices for all the required queries have been built.
 
 #### Additional Queries
 

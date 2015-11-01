@@ -160,7 +160,7 @@ class SessionType(messages.Enum):
     NOT_SPECIFIED = 1
     Lecture = 2
     Keynote = 3
-    Workwhop = 4
+    Workshop = 4
     QuestionsAndAnswers = 5
     Information = 6
 
